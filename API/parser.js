@@ -1,30 +1,24 @@
+/* this module handle the link to the university server */
+const http = require('http');
 
-fs = require('fs');
 
-function readFile(filename) {
-	return new Promise(function(resolve, reject) {
-		fs.readFile(filename, (err, data) => {
-			if (err) reject(err);
-			else resolve(data);
-		})
-	});
-}
+const buildUrl = (function () {
+	const first = 'http://edt.univ-lemans.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=';
+	const last = '&projectId=1&calType=ical&nbWeeks=200';
+
+	return function(ressource) {
+		return `${first}${ressource}${last}`;
+	};
+})();
 
 // this an hardcoded parser who takes only what matters
-async function parse(filename) {
+function parse(rawstr) {
 
-	// First read the file
-	let raw;
-	try {
-		raw = await readFile(filename);
-	} catch(err) {
-		return Promise.reject(err);
-	}
 
-	// convert the Buffer to a string and clean it up a bit
 	// the first replace is for the description who gets \\n as a separator
 	// the second one is to remove all the new line marker
-	const rawstr = raw.toString().replace(/\\n/g, ';').replace(/\r\n/g, '@');
+	// and the third because sometime there is some \\ that I dont want
+	rawstr = rawstr.replace(/\\n/g, ';').replace(/\r\n/g, '@').replace(/\\/g,'');
 
 	// split the string into a series of key, value, key, value, ...
 	const keyval = rawstr.split(/([A-Z\-]+):/);
@@ -47,9 +41,6 @@ async function parse(filename) {
 		chunks.push(chunk);
 		i = j+1;
 	}
-
-	// return Promise.resolve(chunks.filter(c => c.indexOf('ADE6070726f6a6574756e6976323031382d323031392d31353831342d302d3130@') > -1));
-
 
 	// now we need to transform every chunk into a timetable item
 	const data = [];
@@ -74,8 +65,8 @@ async function parse(filename) {
 
 		desc.forEach(str => {
 			str = str.trim();
-			if ((/[0-9]/).test(str)) item.groups.push(str);
-			else item.teachers.push(str);
+			if (!(/[0-9]/).test(str)) item.teachers.push(str);
+			else if (!(/[:]/).test(str))item.groups.push(str);
 		});
 
 		// delete unwanted data
@@ -99,8 +90,26 @@ async function parse(filename) {
 }
 
 
+const university = {};
 
+university.get = function(ressource) {
+	return new Promise(function(resolve, reject) {
+		req = http.request(buildUrl(ressource), function(res) {
+			let response = "";
+			res.setEncoding("utf8");
+			res.on('data', block => response += block);
+			res.on('end', () => resolve(parse(response)));
+		});
+		req.on('error', reject);
+		req.end();
+	});
+}
+
+module.exports = university;
+
+// university.get(1189)
+// .then(d => {
+// 	console.log(d);
+// })
+// .catch(e => console.log(e));
 //
-// module.exports = {
-// 	parse
-// }
