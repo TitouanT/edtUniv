@@ -91,8 +91,8 @@ data = {
 			"lastmodified":date,
 			"summary":string, // usually the name of the course
 			"location":string, // the name of the building and the room number
-			"group":[string], // which groups of student (maybe more than 1)
-			"teacher":[string], // which teacher (maybe more than 1)
+			"groups":[string], // which groups of student (maybe more than 1)
+			"teachers":[string], // which teacher (maybe more than 1)
 		}
 	]
 }
