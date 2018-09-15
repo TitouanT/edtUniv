@@ -3,7 +3,7 @@ application to help student accessing their timetable
 
 # the API
 
-This a REST API in json format.
+This is a REST API in json format.
 
 
 All request response formated like this:
